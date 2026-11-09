@@ -1,6 +1,6 @@
 # theenderproject
 
-The ongoing saga of the Ender 3.
+The ongoing saga of the Ender 3. This project was created mostly by Claude.
 
 ## Current build: Mini Stealth v2 toolhead
 
