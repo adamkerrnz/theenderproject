@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ender 3 – Mini Stealth v2 toolhead</title>
+<style>
+  :root { --bg:#eceae6; --panel:#ffffff; --ink:#1d1d1f; --muted:#6b6b70; --line:#dedbd5; --accent:#c8360a; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  #app { display:grid; grid-template-columns: 300px 1fr; height:100%; }
+  aside { background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:18px 16px 24px; }
+  h1 { font-size:16px; margin:0 0 2px; letter-spacing:-0.01em; }
+  .sub { color:var(--muted); font-size:12.5px; margin:0 0 14px; }
+  .presets { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+  button { font:inherit; font-size:12.5px; border:1px solid var(--line); background:#faf9f7; color:var(--ink); padding:5px 10px; border-radius:6px; cursor:pointer; }
+  button:hover { border-color:#bdb8ae; }
+  button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+  h2 { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:16px 0 6px; font-weight:600; }
+  label { display:flex; align-items:flex-start; gap:8px; padding:4px 2px; cursor:pointer; font-size:13px; }
+  label input { margin-top:2px; accent-color:var(--ink); }
+  .sw { width:11px; height:11px; border-radius:3px; flex:none; margin-top:3px; border:1px solid rgba(0,0,0,.15); }
+  .tag { font-size:10.5px; color:var(--muted); border:1px solid var(--line); border-radius:4px; padding:0 4px; margin-left:4px; white-space:nowrap; }
+  .note { font-size:12px; color:var(--muted); margin-top:16px; border-top:1px solid var(--line); padding-top:12px; }
+  main { position:relative; }
+  canvas { display:block; width:100%; height:100%; }
+  #status { position:absolute; inset:0; display:grid; place-items:center; color:var(--muted); pointer-events:none; }
+  .hint { position:absolute; right:14px; bottom:12px; font-size:12px; color:var(--muted); background:rgba(255,255,255,.75); padding:4px 8px; border-radius:6px; }
+  @media (max-width: 760px) { #app { grid-template-columns:1fr; grid-template-rows: 55% 45%; } aside { order:2; border-right:0; border-top:1px solid var(--line);} main{order:1;} }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <h1>Mini Stealth v2 on the Ender 3</h1>
+    <p class="sub">Front MGN9H rail · Sherpa Micro · Bambu X1 hotend · EBB36 Gen2 · Eddy Coil</p>
+    <div class="presets">
+      <button data-p="all" class="on">Full toolhead</button>
+      <button data-p="cut">Cut-away</button>
+      <button data-p="printed">Printed parts</button>
+      <button data-p="reset">Reset view</button>
+    </div>
+    <div id="groups"></div>
+    <p class="note">The printed parts are the actual STLs from <code>stl/</code>. They're positioned using the designer's Sherpa Mini Blender assembly and the parts' mating holes. Parts tagged <b>stand-in</b> or <b>proxy</b> are placeholders: the extruder is the Sherpa Mini model, and the Bambu X1 hotend, Eddy Coil, rail and extrusion are simple blocks. Positions are approximate, so check real fit when you dry-fit the parts.</p>
+  </aside>
+  <main>
+    <canvas id="c"></canvas>
+    <div id="status">Loading model…</div>
+    <div class="hint">Drag to rotate · scroll to zoom · right-drag to pan</div>
+  </main>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const PARTS = [
+  ['Printed parts', [
+    ['shroud','Shroud – Sherpa Micro, ProbeRight, 2510','#cc2f0a'],
+    ['core','Core – Sherpa Micro, Bambu','#2a2a2e'],
+    ['door','Cable door','#2a2a2e'],
+    ['bridge','Motor bridge – umbilical PCB','#2a2a2e'],
+    ['mount','EBB36 PCB mount','#2a2a2e'],
+    ['xL','X-frame left – MGN9H front','#2a2a2e'],
+    ['xR','X-frame right','#2a2a2e'],
+    ['eddy','Eddy side bracket','#2a2a2e'],
+  ]],
+  ['Electronics & motion', [
+    ['ebb36','BTT EBB36','#1d5a2c','v1 model, same footprint as Gen2'],
+    ['motor','LDO-36STH20 stepper','#202022'],
+    ['blowers','2× 4010 blowers','#111'],
+    ['hotendfan','2510 hotend fan','#111','scaled'],
+    ['sherpa','Sherpa extruder','#3a3a3e','stand-in'],
+    ['eddy_coil','BTT Eddy Coil','#1f4fa8','proxy'],
+    ['hotend_heatsink','Bambu X1 heatsink','#bfc2c6','proxy'],
+    ['hotend_heater','Bambu X1 heater + sock','#e6e6e2','proxy'],
+    ['nozzle','Nozzle','#d49b3f','proxy'],
+    ['mgn_block','MGN9H block','#9ea2a8','proxy'],
+    ['mgn_rail','MGN9H rail','#9ea2a8','proxy'],
+    ['extrusion','2020 X extrusion','#5d6066','proxy'],
+  ]],
+];
+const PRESETS = {
+  all: () => true,
+  cut: n => !['shroud','blowers','hotendfan','door'].includes(n),
+  printed: n => ['shroud','core','door','bridge','mount','xL','xR','eddy'].includes(n),
+};
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#eceae6');
+const camera = new THREE.PerspectiveCamera(35, 1, 0.001, 100);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8478, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(-1, 1.4, 1.2); scene.add(key);
+const rim = new THREE.DirectionalLight(0xffffff, 1.0); rim.position.set(1.2, 0.8, -1.4); scene.add(rim);
+
+const nodes = {};
+const checks = {};
+const groupsEl = document.getElementById('groups');
+for (const [title, items] of PARTS) {
+  const h = document.createElement('h2'); h.textContent = title; groupsEl.appendChild(h);
+  for (const [id, label, col, tag] of items) {
+    const l = document.createElement('label');
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true;
+    cb.addEventListener('change', () => { if (nodes[id]) nodes[id].visible = cb.checked; setPresetButton(null); });
+    const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = col;
+    const t = document.createElement('span'); t.textContent = label;
+    if (tag) { const g = document.createElement('span'); g.className = 'tag'; g.textContent = tag; t.appendChild(g); }
+    l.append(cb, sw, t); groupsEl.appendChild(l); checks[id] = cb;
+  }
+}
+function setPresetButton(p) {
+  document.querySelectorAll('.presets button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+}
+function applyPreset(p) {
+  for (const id in checks) { const v = PRESETS[p](id); checks[id].checked = v; if (nodes[id]) nodes[id].visible = v; }
+  setPresetButton(p);
+}
+let home = null;
+function resetView() {
+  if (!home) return;
+  camera.position.copy(home.pos); controls.target.copy(home.target); controls.update();
+}
+document.querySelectorAll('.presets button').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.p === 'reset') resetView(); else applyPreset(b.dataset.p);
+}));
+
+new GLTFLoader().load('toolhead.glb', gltf => {
+  const root = gltf.scene;
+  root.traverse(o => {
+    if (o.isMesh) { o.material.side = THREE.DoubleSide; o.material.flatShading = false; }
+    if (o.name && checks[o.name] && !nodes[o.name]) nodes[o.name] = o;
+  });
+  scene.add(root);
+  const box = new THREE.Box3();
+  for (const id in nodes) if (!['mgn_rail','extrusion'].includes(id)) box.expandByObject(nodes[id]);
+  const c = box.getCenter(new THREE.Vector3()); const s = box.getSize(new THREE.Vector3()).length();
+  camera.near = s / 200; camera.far = s * 50; camera.updateProjectionMatrix();
+  home = { target: c.clone(), pos: c.clone().add(new THREE.Vector3(-0.55, 0.35, 0.95).normalize().multiplyScalar(s * 1.9)) };
+  resetView();
+  document.getElementById('status').remove();
+}, undefined, () => { document.getElementById('status').textContent = 'The model could not be loaded.'; });
+
+function resize() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false); camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas.parentElement); resize();
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>
