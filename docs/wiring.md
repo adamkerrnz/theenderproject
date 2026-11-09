@@ -28,3 +28,22 @@ BTT warns that the FAN1 and FAN2 power jumpers must be set correctly.
 | Neopixels (optional) | RGB | PC7 |
 
 Check every fan and sensor lead with a meter before cutting connectors off.
+
+# Manta E3EZ wiring
+
+Pins come from Klipper's `generic-bigtreetech-manta-e3ez.cfg` and BTT's Manta-E3EZ `printer-ender3.cfg`.
+
+| Device | Manta port | Klipper section | Pins |
+| --- | --- | --- | --- |
+| X motor | X | `[stepper_x]` | step PA14, dir PA10, en PA13; UART PB8 |
+| Y motor | Y | `[stepper_y]` | step PC8, dir PA15, en PC14; UART PC9 |
+| Z motor, left | Z | `[stepper_z]` | step PD2, dir PD4, en PD3; UART PD0 |
+| Z motor, right | E0 | `[stepper_z1]` | step PD5, dir PD6, en PB3; UART PD1 |
+| X endstop | X-STOP | `[stepper_x]` | PC4 |
+| Y endstop | Y-STOP | `[stepper_y]` | PB0 |
+| Z endstop | — | Eddy virtual endstop | stock Z switch (PC6) not used |
+| Bed heater / thermistor | HB / TB | `[heater_bed]` | PB2 / PA3 |
+| Electronics fan (optional) | FAN0 | `[controller_fan]` | PA8 |
+| EBB36 umbilical | CAN | — | 24 V, GND, CAN-H, CAN-L |
+
+Spare: E1 slot (PB7/PB6/PB4, UART PB5), FAN1/FAN2 (PB15/PB14), RGB (PC7), PS_ON (PA9).
