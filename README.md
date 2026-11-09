@@ -7,6 +7,10 @@ The ongoing saga of the Ender 3.
 Build notes, printable parts and Klipper config for fitting atrushing's
 [Mini Stealth v2](https://github.com/atrushing/Mini_Stealth) toolhead to an Ender 3.
 
+![Toolhead render](docs/img/render/front.png)
+
+More views, an interactive 3D viewer and the glTF model are in [`assembly/`](assembly/). Some parts in the render are stand-ins (see that page).
+
 ### Configuration
 
 | Item | Choice | Mini Stealth part |
@@ -27,6 +31,7 @@ Build notes, printable parts and Klipper config for fitting atrushing's
 
 | Path | What's in it |
 | --- | --- |
+| [`assembly/`](assembly/) | Renders, interactive 3D viewer (`viewer.html`), glTF model and the scripts that build them |
 | [`stl/`](stl/) | Every part to print, copied from the Mini Stealth repo (GPL-3.0, see [`stl/LICENSE`](stl/LICENSE)) |
 | [`docs/print-list.md`](docs/print-list.md) | Quantities, materials and which Eddy bracket to choose |
 | [`docs/hardware.md`](docs/hardware.md) | Bill of materials: electronics, fans, screws, inserts |
