@@ -7,8 +7,9 @@ Where no length is given, measure during the dry fit. The Mini Stealth designer'
 | Item | Qty | Notes |
 | --- | --- | --- |
 | BTT EBB36 Gen2 (CAN) | 1 | Mounted on the umbilical PCB mount behind the extruder motor |
-| USB-to-CAN adapter (e.g. BTT U2C) | 1 | Creality Ender 3 boards have no CAN port. Not needed if your mainboard has CAN |
-| Klipper host (Raspberry Pi or similar) | 1 | The EBB36 runs only Klipper |
+| BTT Manta E3EZ + CB1 | 1 | Mainboard and Klipper host. The Manta's MCU runs as the USB-to-CAN bridge, so no U2C adapter is needed |
+| Stepper drivers (EZ2209 or similar) | 4 | X, Y, Z (left) and E0 slot (right Z motor). The extruder driver is on the EBB36 |
+| Z motors | 2 | kevinakasam belt-driven dual Z with MGN9H rails |
 | Umbilical cable | 1 | 24 V + GND (about 18 AWG) and a twisted CAN-H/CAN-L pair. 120 Ω termination at both ends |
 | BTT Eddy Coil | 1 | I2C to the EBB36. No temperature compensation |
 | 4010 blower fans, 24 V | 2 | Part cooling, on EBB36 FAN0 |
